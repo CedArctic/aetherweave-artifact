@@ -1,0 +1,19 @@
+name: aetherweave
+plugins:
+  - name: solidity
+  - name: foundry
+
+solidity:
+  version: "0.8.27"
+
+ethereum:
+  local:
+    default_provider: foundry
+
+hardhat:
+  allowUnlimitedContractSize: true
+
+dependencies:
+  - name: openzeppelin
+    github: OpenZeppelin/openzeppelin-contracts
+    ref: v5.4.0

@@ -1,0 +1,64 @@
+test *FLAGS: setup clean compile-circom
+    .venv/bin/ape compile --include-dependencies
+    .venv/bin/ape test --durations=10 {{ FLAGS }}
+
+quick-test *FLAGS: 
+    .venv/bin/ape test {{ FLAGS }}
+
+format:
+    .venv/bin/black . --line-length 80
+    .venv/bin/isort . --profile black
+
+type-check: setup
+    .venv/bin/mypy --strict .
+
+setup:
+    [ -d .venv ] || (python -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/ape plugins install . && .venv/bin/ape pm install)
+
+clean:
+    rm -rf .pytest_cache
+    rm -rf .build
+    rm -rf tests/__pycache__
+    rm -rf output
+
+compile-circom:
+    mkdir -p ./output
+    mkdir -p ./output/stake_proof
+    circom circuits/stake_proof.circom --r1cs --sym --wasm --c -o ./output/stake_proof -l ./node_modules/ -l ./circuits/lib
+    mkdir -p ./output/share_proof
+    circom circuits/share_proof.circom --r1cs --sym --wasm --c -o ./output/share_proof -l ./node_modules/ -l ./circuits/lib
+
+trusted-setup: compile-circom
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p trusted-setup
+    [ -e ./trusted-setup/pot_final.ptau ] || ./node_modules/.bin/snarkjs powersoftau new bn128 16 trusted-setup/pot_0000.ptau -v
+    [ -e ./trusted-setup/pot_final.ptau ] || ./node_modules/.bin/snarkjs powersoftau contribute trusted-setup/pot_0000.ptau trusted-setup/pot_0001.ptau --name="First contribution" -v
+    [ -e ./trusted-setup/pot_final.ptau ] || ./node_modules/.bin/snarkjs powersoftau prepare phase2 trusted-setup/pot_0001.ptau trusted-setup/pot_final.ptau -v
+    for x in {stake_proof,share_proof}; do
+      ./node_modules/.bin/snarkjs groth16 setup ./output/${x}/${x}.r1cs ./trusted-setup/pot_final.ptau ./trusted-setup/${x}_0000.zkey
+      ./node_modules/.bin/snarkjs zkey contribute ./trusted-setup/${x}_0000.zkey ./trusted-setup/${x}_0001.zkey --name="1st Contributor Name" -v
+      ./node_modules/.bin/snarkjs zkey export verificationkey ./trusted-setup/${x}_0001.zkey ./trusted-setup/${x}_verification_key.json
+    done
+
+prysm-code: trusted-setup
+    # Compile contract abi and link libraries at the predefined Ethereum addresses in lib_addr.txt
+    solc --abi contracts/AetherWeavePrivate.sol -o output/abi --overwrite --libraries contracts/lib_addr.txt
+
+    # Compile runtime binaries for the contracts at the predefined Ethereum addresses in lib_addr.txt
+    # After compilation transfer this code under the additional_preloaded_contracts key in the ethereum-package config
+    solc --bin-runtime contracts/AetherWeavePrivate.sol -o output/bin-runtime --overwrite --libraries contracts/lib_addr.txt
+
+    # Generate go code bindings for the contracts
+    mkdir -p output/go
+    abigen --abi=output/abi/AetherWeavePrivate.abi --pkg=awcontract --out=output/go/aetherweaveprivate.go
+    abigen --abi=output/abi/SparseMerkleTree.abi --pkg=sparsemerkeltree --out=output/go/sparsemerkletree.go
+    abigen --abi=output/abi/PoseidonT2.abi --pkg=poseidont2 --out=output/go/poseidont2.go
+    abigen --abi=output/abi/PoseidonT3.abi --pkg=poseidont3 --out=output/go/poseidont3.go
+    abigen --abi=output/abi/PoseidonT4.abi --pkg=poseidont4 --out=output/go/poseidont4.go
+
+install-npm-packages:
+    npm install circomlib
+    npm install circomlibjs
+    npm install snarkjs
+    npm install @solarity/circom-lib

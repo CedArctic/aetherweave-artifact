@@ -1,0 +1,12 @@
+{
+  "name": "aetherweave-contract",
+  "dependencies": {
+    "@iden3/contracts": "^3.1.0",
+    "@openzeppelin/contracts": "^5.4.0",
+    "@solarity/circom-lib": "^0.2.2",
+    "@solarity/solidity-lib": "^3.1.4",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.5"
+  }
+}

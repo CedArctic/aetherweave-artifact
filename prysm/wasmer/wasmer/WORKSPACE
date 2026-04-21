@@ -1,0 +1,25 @@
+# WORKSPACE
+
+# -----------------------------
+# Bazel Go rules
+# -----------------------------
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "io_bazel_rules_go",
+    urls = ["https://github.com/bazelbuild/rules_go/releases/download/v0.42.0/rules_go-v0.42.0.tar.gz"],
+    sha256 = "64b2448f398aef9fa5f1c0cc9150c0ed45012ad3103cf4342c9e2d35a7393f70",
+)
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
+
+go_rules_dependencies()
+go_register_toolchains()
+
+# -----------------------------
+# Local copy of wasmer-go
+# -----------------------------
+local_repository(
+    name = "com_github_iden3_wasmer_go_wasmer",
+    path = "wasmer/wasmer",
+)

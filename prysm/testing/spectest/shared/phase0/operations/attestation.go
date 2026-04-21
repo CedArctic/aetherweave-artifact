@@ -1,0 +1,28 @@
+package operations
+
+import (
+	"testing"
+
+	b "github.com/OffchainLabs/prysm/v6/beacon-chain/core/blocks"
+	"github.com/OffchainLabs/prysm/v6/consensus-types/blocks"
+	"github.com/OffchainLabs/prysm/v6/consensus-types/interfaces"
+	ethpb "github.com/OffchainLabs/prysm/v6/proto/prysm/v1alpha1"
+	"github.com/OffchainLabs/prysm/v6/runtime/version"
+	common "github.com/OffchainLabs/prysm/v6/testing/spectest/shared/common/operations"
+	"github.com/OffchainLabs/prysm/v6/testing/util"
+)
+
+func blockWithAttestation(attestationSSZ []byte) (interfaces.SignedBeaconBlock, error) {
+	att := &ethpb.Attestation{}
+	if err := att.UnmarshalSSZ(attestationSSZ); err != nil {
+		return nil, err
+	}
+	b := util.NewBeaconBlock()
+	b.Block.Body = &ethpb.BeaconBlockBody{Attestations: []*ethpb.Attestation{att}}
+	return blocks.NewSignedBeaconBlock(b)
+}
+
+// RunAttestationTest executes "operations/attestation" tests.
+func RunAttestationTest(t *testing.T, config string) {
+	common.RunAttestationTest(t, config, version.String(version.Phase0), blockWithAttestation, b.ProcessAttestationsNoVerifySignature, sszToState)
+}

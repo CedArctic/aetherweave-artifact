@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package ethereum.eth.v1alpha1;
+
+import "google/protobuf/descriptor.proto";
+import "proto/eth/ext/options.proto";
+
+option csharp_namespace = "Ethereum.Eth.V1alpha1";
+option go_package = "github.com/OffchainLabs/prysm/v6/proto/prysm/v1alpha1;eth";
+option java_multiple_files = true;
+option java_outer_classname = "P2PMessagesProto";
+option java_package = "org.ethereum.eth.v1alpha1";
+option php_namespace = "Ethereum\\Eth\\v1alpha1";
+
+message Hash {
+    bytes hash = 1 [ (ethereum.eth.ext.ssz_size) = "32" ]; // 32 byte hash (e.g sha-256)
+}
+
+message PublicKey {
+    bytes pubkey = 1 [ (ethereum.eth.ext.ssz_size) = "36" ]; // number of bytes in public keys: 37 for secp256k1, 36 for Babyjubjub
+}
+
+message Signature {
+    bytes signature = 1 [ (ethereum.eth.ext.ssz_max) = "71" ]; // 64 bytes in secp256k1 ECDSA signature over SHA256. Actual up to 71.
+}
+
+
+message AWMultiAddr {
+    bytes multiaddr = 1 [ (ethereum.eth.ext.ssz_max) = "128" ];
+}
+
+message CommitmentOpening { // 804 bytes max
+    Hash parent_hash = 1; // 32 bytes
+    uint32 leaf_index = 2; // 4 bytes
+    repeated Hash proof = 3 [ (ethereum.eth.ext.ssz_max) = "768" ]; // 768 bytes max
+}
+
+message NetworkRecord { // 660 bytes max
+    PublicKey public_key = 1; // 37 bytes
+    // bytes proof_of_stake = 2 [ (ethereum.eth.ext.ssz_max) = "807" ]; // JSON-serialized ZKP data. 807 bytes max
+    ZKP proof_of_stake = 2; // 384 bytes max
+    Hash merkle_root = 3; // 32 bytes. Merkle root needed to verify ZKP
+    AWMultiAddr multiaddr = 4; // 128 bytes max
+    uint64 timestamp = 5; // 8 bytes
+    Signature signature = 6; // 71 bytes
+}
+
+message CommitmentRecord { // 456 bytes
+    Hash root_hash = 1; // 32 bytes
+    uint64 round_number = 2; // 8 bytes
+    bytes slash_share = 3 [ (ethereum.eth.ext.ssz_size) = "32" ]; // 32 bytes
+    ZKP share_proof = 4; // 384 bytes max
+}
+
+
+message PeerRecord { // 5220 bytes max
+    NetworkRecord net_record = 1; // 660 bytes max
+    repeated CommitmentRecord commitments = 2 [ (ethereum.eth.ext.ssz_max) = "4560" ]; // 456*10: Enough bytes for 10 peer records
+}
+
+message SlashProof { // 259 bytes
+    PublicKey slashee = 1; // 37 bytes
+    CommitmentRecord record_1 = 2; // 111 bytes
+    CommitmentRecord record_2 = 3; // 111 bytes
+}
+
+message Request {
+    repeated uint64 nonces = 1 [ (ethereum.eth.ext.ssz_max) = "5220000" ]; // 16 bytes - Up to 2 nonces for dual table support
+    NetworkRecord sender_record = 2;
+    CommitmentRecord commitment_record = 3;
+    CommitmentOpening commitment_opening = 4;
+    Signature signature = 5;
+}
+
+message Response {
+    repeated PeerRecord records = 1 [ (ethereum.eth.ext.ssz_max) = "5220000" ]; // Enough for 1000 peer records
+    repeated SlashProof slash_proofs = 2 [ (ethereum.eth.ext.ssz_max) = "25900" ]; // Enough for 100 slash proofs
+    repeated PeerRecord records_b = 3 [ (ethereum.eth.ext.ssz_max) = "5220000" ]; // Optional second records field for dual table support. Enough for 1000 peer records
+}
+
+message PI_A { // 768 bits max
+    bytes a = 1 [(ethereum.eth.ext.ssz_max) = "32"];
+    bytes b = 2 [(ethereum.eth.ext.ssz_max) = "32"];
+    bytes c = 3 [(ethereum.eth.ext.ssz_max) = "32"];
+}
+
+message PI_B_Point { // 512 bits max
+    bytes a = 1 [(ethereum.eth.ext.ssz_max) = "32"];
+    bytes b = 2 [(ethereum.eth.ext.ssz_max) = "32"];
+}
+
+message PI_B { // Contains 3 points - 1536 bits max
+    repeated PI_B_Point points = 1 [(ethereum.eth.ext.ssz_max) = "192"];
+}
+
+message PI_C { // 768 bits max
+    bytes a = 1 [(ethereum.eth.ext.ssz_max) = "32"];
+    bytes b = 2 [(ethereum.eth.ext.ssz_max) = "32"];
+    bytes c = 3 [(ethereum.eth.ext.ssz_max) = "32"];
+}
+
+message ZKP { // 3072 bits / 384 bytes max
+    PI_A pi_a = 1; // 768 bits max
+    PI_B pi_b = 2; // 1536 bits max
+    PI_C pi_c = 3; // 768 bits max
+}

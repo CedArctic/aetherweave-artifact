@@ -1,0 +1,101 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+# -----------------------------
+# C++ vendored static libraries
+# -----------------------------
+
+cc_import(
+    name = "rapidsnark_static",
+    static_library = "rapidsnark_vendor/librapidsnark-fr-fq.a",
+    hdrs = glob(["include/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "librapidsnark_linux_amd64",
+    deps = [":rapidsnark_static"],
+    linkopts = [
+        "-lstdc++",   # if you built against libstdc++
+        # or "-lc++" if you rebuilt against libc++
+        # "-lgmp",      # needed per CMakeLists.txt
+        "-lm",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# cc_library(
+#     name = "librapidsnark_linux_amd64",
+#     srcs = [
+#         # "rapidsnark_vendor/librapidsnark-linux-amd64.a"
+#         # "rapidsnark_vendor/librapidsnark.a",
+#         "rapidsnark_vendor/librapidsnark-fr-fq.a",
+#     ],
+#     hdrs = ["rapidsnark_vendor/prover.h"],
+#     includes = ["rapidsnark_vendor"],
+#     linkopts = ["-lstdc++"],
+#     linkstatic = 1,
+#     alwayslink = True,
+# )
+
+cc_library(
+    name = "libgmp_linux_amd64",
+    srcs = ["rapidsnark_vendor/libgmp-linux-amd64.a"],
+    includes = ["rapidsnark_vendor"],
+    linkstatic = 1,
+    alwayslink = True,
+)
+
+# cc_library(
+#     name = "stdcpp_linux",
+#     linkopts = [
+#         "-Wl,--no-as-needed",
+#         "-Wl,--start-group",
+#         "-lstdc++",
+#         "-lm",
+#         "-lpthread",
+#         "-ldl",
+#         "-Wl,--end-group",
+#     ],
+# )
+
+# -----------------------------
+# Go library (cgo)
+# -----------------------------
+
+go_library(
+    name = "prover",
+    srcs = [
+        "rapidsnark.go",
+        "select_rapidsnark.h",
+        "rapidsnark_vendor/prover.h",
+        "build_darwin_amd64.go",
+        "build_darwin_arm64.go",
+        "build_linux_amd64.go",
+        "build_linux_arm64.go",
+    ],
+    cgo = True,
+    copts = [
+        "-I.",
+        "-Irapidsnark_vendor",
+    ],
+    clinkopts = [
+        "-fopenmp",
+        "-D_GLIBCXX_USE_CXX11_ABI=1",  # ensure ABI compatibility with vendored .a
+    ],
+    cdeps = [
+        ":librapidsnark_linux_amd64",
+        ":libgmp_linux_amd64",
+        # ":stdcpp_linux",
+    ],
+    importpath = "github.com/iden3/go-rapidsnark/prover",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_iden3_go_rapidsnark_types//:types",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":prover",
+    visibility = ["//visibility:public"],
+)

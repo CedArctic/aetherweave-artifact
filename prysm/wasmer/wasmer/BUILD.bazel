@@ -1,0 +1,80 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+# load("@bazel_skylib//lib:selects.bzl", "selects")
+
+# Headers + libs consolidated here
+cc_library(
+    name = "wasmer_headers",
+    hdrs = [
+        "packaged/include/wasmer.h",
+        "packaged/include/wasm.h",
+    ],
+    includes = ["packaged/include"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "wasmer_lib",
+    # srcs = select({
+    #     "@io_bazel_rules_go//go/platform:darwin_amd64": ["packaged/lib/darwin-amd64/libwasmer.dylib"],
+    #     "@io_bazel_rules_go//go/platform:darwin_arm64": ["packaged/lib/darwin-aarch64/libwasmer.dylib"],
+    #     "@io_bazel_rules_go//go/platform:linux_amd64": ["packaged/lib/linux-amd64/libwasmer.so"],
+    #     "@io_bazel_rules_go//go/platform:linux_arm64": ["packaged/lib/linux-aarch64/libwasmer.so"],
+    #     "//conditions:default": [],
+    # }),
+    srcs = ["packaged/lib/linux-amd64/libwasmer.so"],
+    visibility = ["//visibility:public"],
+    deps = [":wasmer_headers"],
+)
+
+# Dummy libraries for go imports
+go_library(
+    name = "packaged_include",
+    srcs = [],
+    importpath = "github.com/iden3/wasmer-go/wasmer/packaged/include",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "packaged_lib",
+    srcs = [],
+    importpath = "github.com/iden3/wasmer-go/wasmer/packaged/lib",
+    visibility = ["//visibility:public"],
+)
+
+# Go library (with CGO)
+go_library(
+    name = "wasmer",
+    srcs = glob([
+        "*.go",
+    ], exclude = [
+        "*_test.go",
+        "config_test_helper.go",  # test-only
+    ]),
+    cgo = True,
+    importpath = "github.com/iden3/wasmer-go/wasmer",
+    visibility = ["//visibility:public"],
+    cdeps = [
+        ":wasmer_headers",
+        ":wasmer_lib",
+    ],
+    deps = [
+        ":packaged_include",
+        ":packaged_lib",
+    ],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":wasmer",
+    visibility = ["//visibility:public"],
+)
+
+# Tests
+go_test(
+    name = "wasmer_test",
+    srcs = glob(["*_test.go"]),
+    data = glob(["testdata/**"]),
+    embed = [":wasmer"],
+    deps = ["@com_github_stretchr_testify//assert"],
+)
+
