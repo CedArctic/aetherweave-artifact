@@ -23,10 +23,6 @@ EOF"
     sudo sysctl -p
 fi
 
-# 0.5. Initialize submodules
-echo "Step 0.5: Initializing submodules..."
-git submodule update --init --recursive
-
 # 1. Install python and prepare venv
 echo "Step 1: Preparing Python environment..."
 sudo apt-get update

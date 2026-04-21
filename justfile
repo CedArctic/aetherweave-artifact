@@ -5,7 +5,7 @@ SUDO   := if docker ps >/dev/null 2>&1; then "" else "sudo" fi
 # --- High Level Recipes ---
 
 # Full setup of the environment and images
-setup: setup-sysctl setup-submodules setup-python setup-deps setup-zig setup-bazel build-rapidsnark build-prysm build-images setup-kurtosis
+setup: setup-sysctl setup-python setup-deps setup-zig setup-bazel build-rapidsnark build-prysm build-images setup-kurtosis
 
 # Run the complete simulation cycle
 run: start-simulation update-cadvisor-whitelist start-measurements wait-stabilize bootstrap
@@ -19,10 +19,6 @@ setup-sysctl:
         sudo bash -c "cat >> /etc/sysctl.conf <<EOF\n\n# Aetherweave Simulation ARP settings\nnet.ipv4.neigh.default.gc_thresh3 = 16384\nnet.ipv4.neigh.default.gc_thresh2 = 8192\nnet.ipv4.neigh.default.gc_thresh1 = 4096\nEOF"; \
         sudo sysctl -p; \
     fi
-
-setup-submodules:
-    echo "Initializing submodules..."
-    git submodule update --init --recursive
 
 setup-python:
     echo "Preparing Python environment..."
