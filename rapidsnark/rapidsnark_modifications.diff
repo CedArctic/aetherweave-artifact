@@ -1,0 +1,102 @@
+diff --git a/Makefile b/Makefile
+index 90f684f..39bfa8b 100644
+--- a/Makefile
++++ b/Makefile
+@@ -3,7 +3,7 @@
+ #Build targets
+ host:
+ 	rm -rf build_prover && mkdir build_prover && cd build_prover && \
+-	cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../package && \
++	cmake .. -DCMAKE_C_COMPILER="zig;cc;-static" -DCMAKE_CXX_COMPILER="zig;c++;-static" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../package && \
+ 	make -j$(nproc) -vvv && make install
+ 
+ host_noasm:
+diff --git a/build_gmp.sh b/build_gmp.sh
+index a11ab98..b11b390 100755
+--- a/build_gmp.sh
++++ b/build_gmp.sh
+@@ -70,6 +70,14 @@ build_aarch64()
+ 
+ build_host()
+ {
++
++    # Set Zig as the toolchain
++    export CC="zig cc"
++    export CXX="zig c++"
++
++    # Relax strictness for the configuration tests
++    #export CFLAGS="-Wno-implicit-function-declaration -Wno-implicit-int -Wno-error=unused-command-line-argument -O2"
++
+     PACKAGE_DIR="$GMP_DIR/package"
+     BUILD_DIR=build
+ 
+@@ -91,6 +99,13 @@ build_host()
+ 
+ build_host_noasm()
+ {
++    # Set Zig as the toolchain
++    export CC="zig cc"
++    export CXX="zig c++"
++
++    # Relax strictness for the configuration tests
++    #export CFLAGS="-Wno-implicit-function-declaration -Wno-implicit-int -Wno-error=unused-command-line-argument -O2"
++
+     PACKAGE_DIR="$GMP_DIR/package"
+     BUILD_DIR=build
+ 
+@@ -138,9 +153,11 @@ build_android()
+     export API=21
+ 
+     export AR=$TOOLCHAIN/bin/llvm-ar
+-    export CC=$TOOLCHAIN/bin/$TARGET$API-clang
++    # export CC=$TOOLCHAIN/bin/$TARGET$API-clang
++    export CC="zig cc"
+     export AS=$CC
+-    export CXX=$TOOLCHAIN/bin/$TARGET$API-clang++
++    # export CXX=$TOOLCHAIN/bin/$TARGET$API-clang++
++    export CXX="zig c++"
+     export LD=$TOOLCHAIN/bin/ld
+     export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
+     export STRIP=$TOOLCHAIN/bin/llvm-strip
+@@ -266,7 +283,7 @@ build_ios_simulator()
+ 				echo "Incorrect iPhone Simulator arch"
+ 				exit 1
+ 		esac
+-		
++
+ 		BUILD_DIR="build_iphone_simulator_${ARCH}"
+ 		PACKAGE_DIR="$GMP_DIR/package_iphone_simulator_${ARCH}"
+ 		libs+=("${PACKAGE_DIR}/lib/libgmp.a")
+@@ -287,7 +304,7 @@ build_ios_simulator()
+ 					 --host ${ARCH}-apple-darwin --disable-assembly --enable-static --disable-shared --with-pic &&
+ 			make -j${NPROC} &&
+ 			make install
+-		
++
+ 		cd ..
+ 	done
+ 
+diff --git a/src/binfile_utils.cpp b/src/binfile_utils.cpp
+index 53cc5d9..90db342 100644
+--- a/src/binfile_utils.cpp
++++ b/src/binfile_utils.cpp
+@@ -6,6 +6,7 @@
+ #include <string>
+ #include <memory.h>
+ #include <stdexcept>
++#include <cstdint>
+ 
+ #include "binfile_utils.hpp"
+ #include "fileloader.hpp"
+diff --git a/src/binfile_utils.hpp b/src/binfile_utils.hpp
+index e2a9d23..1113152 100644
+--- a/src/binfile_utils.hpp
++++ b/src/binfile_utils.hpp
+@@ -4,6 +4,7 @@
+ #include <map>
+ #include <vector>
+ #include <memory>
++#include <cstdint>
+ #include "fileloader.hpp"
+ 
+ namespace BinFileUtils {

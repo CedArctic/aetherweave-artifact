@@ -1,0 +1,1 @@
+This is a modified version of cAdvisor that adds a docker container allowlist so as to not overwhelm logging. The modifications are available here: https://github.com/CedArctic/cadvisor/commit/58e3a6212a28edeb03eba21dcc64c32586e0cef3
