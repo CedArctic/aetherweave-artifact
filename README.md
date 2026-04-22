@@ -1,7 +1,5 @@
 # AetherWeave: Stake-Backed Peer Discovery Protocol
 
-AetherWeave is a peer discovery protocol designed for blockchain networks that leverages Proof-of-Stake (PoS) metadata to provide Sybil-resistant and stake-weighted peer selection. This artifact provides the implementation, build scripts, and a containerized simulation environment based on Kurtosis.
-
 ## Artifact Structure
 
 - `prysm/`: Modified Prysm consensus client implementing the AetherWeave protocol.
